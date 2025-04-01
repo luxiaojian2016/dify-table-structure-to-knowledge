@@ -1,5 +1,6 @@
 from typing import Optional, Any
 
+import time
 import httpx
 from dify_plugin.errors.tool import ToolProviderCredentialValidationError
 
@@ -50,7 +51,7 @@ class DifyKnowledgeRequest:
         """
         url = f"{self.dify_knowledge_api_url}/datasets"
         json = {
-            "name": dataset_name,
+            "name": f'{dataset_name}-{int(time.time())}',
             "description": f"Metadata of {dataset_name}",
             "indexing_technique": "high_quality",
             "permission": "only_me",
@@ -73,12 +74,18 @@ class DifyKnowledgeRequest:
             "text": document_text,
             "doc_metadata": [],
             "indexing_technique": "high_quality",
-            "doc_form": "text_model",
+            "doc_form": "hierarchical_model",
+            "doc_language": "Chinese",
             "process_rule": {
-                "mode": "custom",
+                "mode": "hierarchical",
                 "rules": {
-                    "pre_processing_rules": [{"id": "remove_extra_spaces", "enabled": True}],
-                    "segmentation": {"separator": "\\n", "max_tokens": 2000, "chunk_overlap": 400}
+                    "pre_processing_rules": [
+                        {"id": "remove_extra_spaces", "enabled": True},
+                        {"id": "remove_urls_emails", "enabled": False}
+                    ],
+                    "segmentation": {"separator": "\n\n", "max_tokens": 4000},
+                    "parent_mode": "paragraph",
+                    "subchunk_segmentation": {"separator": "\n", "max_tokens": 4000}
                 }
             },
             "retrieval_model": {
@@ -89,7 +96,8 @@ class DifyKnowledgeRequest:
                     "reranking_provider_name": self.rerank_model.get("provider"),
                 },
                 "top_k": 10,
-                "score_threshold_enabled": False
+                "score_threshold_enabled": True,
+                "score_threshold": 0.5
             },
             "embedding_model": self.embedding_model.get("model"),
             "embedding_model_provider": self.embedding_model.get("provider"),
@@ -112,14 +120,14 @@ class DifyKnowledgeRequest:
             for table_name, table_info in schema.items():
                 # 构建文档内容
                 document_name = f"{table_info["comment"]}({table_name})"
-                document_text = f"{table_name}: {table_info["comment"]}\n字段列表:\n"
+                document_text = f"{table_name}:{table_info["comment"]}\n字段列表:\n"
 
                 # 添加字段信息
                 for column in table_info["columns"]:
-                    document_text += f"{column["name"]},{column["type"]},{column["comment"]}\n"
+                    document_text += f"{column["name"]}|{column["type"]}|{column["comment"]}\n"
 
                 # 创建文档
-                document_dict = self._create_document_by_text(dataset_id=dataset_id, document_name=document_name, document_text=document_text)
+                document_dict = self._create_document_by_text(dataset_id=dataset_id, document_name=document_name, document_text=f'{document_text}\n')
                 if document_dict is None:
                     raise ValueError("Failed to create document")
 

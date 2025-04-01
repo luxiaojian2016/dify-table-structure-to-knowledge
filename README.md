@@ -1,7 +1,7 @@
 ## Database to knowledge
 
 **Author:** majinkai
-**Version:** 0.0.1
+**Version:** 0.0.2
 **Type:** tool
 
 ### How to use
@@ -18,7 +18,4 @@
 * Oracle (❌)
 * SQL Server (❌)
 * PostgreSQL (❌)
-
-### PS
-
-Run the same configuration multiple times, please delete the previously created knowledge.
+* Apach Doris (✅)

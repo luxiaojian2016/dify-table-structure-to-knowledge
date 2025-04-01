@@ -29,6 +29,9 @@ parameters:
       - label:
           en_US: PostgreSQL
         value: postgresql
+      - label:
+          en_US: Apache Doris
+        value: doris
     label:
       en_US: Database type
       zh_Hans: 数据库类型
