@@ -54,7 +54,7 @@ class DifyKnowledgeRequest:
             "name": f'{dataset_name}-{int(time.time())}',
             "description": f"Metadata of {dataset_name}",
             "indexing_technique": "high_quality",
-            "permission": "only_me",
+            "permission": "all_team_members",
             "provider": "vendor"
         }
         res = self._send_request(url, json=json)
@@ -96,8 +96,7 @@ class DifyKnowledgeRequest:
                     "reranking_provider_name": self.rerank_model.get("provider"),
                 },
                 "top_k": 10,
-                "score_threshold_enabled": True,
-                "score_threshold": 0.5
+                "score_threshold_enabled": False
             },
             "embedding_model": self.embedding_model.get("model"),
             "embedding_model_provider": self.embedding_model.get("provider"),
