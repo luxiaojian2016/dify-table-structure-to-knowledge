@@ -24,8 +24,8 @@ parameters:
           en_US: Oracle
         value: oracle
       - label:
-          en_US: SQLServer
-        value: sqlserver
+          en_US: Microsoft SQL Server
+        value: mssql
       - label:
           en_US: PostgreSQL
         value: postgresql

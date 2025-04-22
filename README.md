@@ -15,7 +15,7 @@
 
 ### Verified databases
 * MySQL (✅)
-* Oracle (❌)
-* SQL Server (❌)
-* PostgreSQL (❌)
+* Oracle (✅)
+* Microsoft SQL Server (✅)
+* PostgreSQL (✅)
 * Apach Doris (✅)

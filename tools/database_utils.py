@@ -1,7 +1,8 @@
 import re
 
+from urllib import parse
 from sqlalchemy import create_engine, inspect, URL, text
-from typing import Dict, List
+from typing import Dict
 
 
 def _build_db_url(db_type: str, host: str, port: int, username: str, password: str, database: str) -> URL:
@@ -13,34 +14,10 @@ def _build_db_url(db_type: str, host: str, port: int, username: str, password: s
 
     drivers = {
         'mysql': 'pymysql',
-        'oracle': 'cx_oracle',
-        'sqlserver': 'pyodbc',
+        'oracle': 'oracledb',
+        'mssql': 'pymssql',
         'postgresql': 'psycopg2'
     }
-
-    if db_type == 'oracle':
-        return URL.create(
-            "oracle+cx_oracle",
-            username=username,
-            password=password,
-            host=host,
-            port=port
-        )
-
-    if db_type == 'sqlserver':
-        return URL.create(
-            "mssql+pyodbc",
-            username=username,
-            password=password,
-            host=host,
-            port=port,
-            database=database,
-            query={
-                "driver": "ODBC Driver 17 for SQL Server",
-                "encrypt": "yes",
-                "TrustServerCertificate": "yes"
-            }
-        )
 
     return URL.create(
         f"{db_type}+{drivers[db_type]}",
@@ -57,6 +34,7 @@ class DBSchemaExtractor:
         self.engine = create_engine(db_url)
         self.inspector = inspect(self.engine)
         self.db_type = db_type
+        self.username = username
 
     def get_all_tables_schema(self, table_names: str | None = None) -> Dict:
         schemas = {}
@@ -101,7 +79,7 @@ class DBSchemaExtractor:
             query = f"SELECT table_comment FROM information_schema.tables WHERE table_name = '{table_name}';"
         elif self.db_type == "postgresql":
             query = f"SELECT obj_description('{table_name}'::regclass, 'pg_class');"
-        elif self.db_type == "sqlserver":
+        elif self.db_type == "mssql":
             query = f"SELECT cast(EP.value as nvarchar(500)) FROM sys.tables T INNER JOIN sys.extended_properties EP ON T.object_id = EP.major_id WHERE T.name = '{table_name}' AND EP.minor_id = 0;"
         elif self.db_type == "doris":
             # Doris：从 CREATE 语句中解析表注释
@@ -144,10 +122,24 @@ class DBSchemaExtractor:
     def _get_oracle_table_schema(self, table_name: str) -> Dict:
         schema = {"table_name": table_name, "comment": "", "columns": []}
         with self.engine.connect() as conn:
-            query = f"SELECT COMMENTS FROM USER_TAB_COMMENTS WHERE TABLE_NAME = '{table_name}';"
+            query = f"SELECT COMMENTS FROM ALL_TAB_COMMENTS WHERE OWNER = '{self.username}' AND TABLE_NAME = '{table_name}' OR TABLE_NAME = '{table_name.upper()}'"
             result = conn.execute(text(query)).fetchone()
             schema["comment"] = result[0] if result else ""
-            query = f"SELECT COLUMN_NAME, DATA_TYPE, (SELECT COMMENTS FROM USER_COL_COMMENTS WHERE TABLE_NAME = '{table_name}' AND COLUMN_NAME = C.COLUMN_NAME) AS COMMENT FROM USER_TAB_COLUMNS C WHERE TABLE_NAME = '{table_name}';"
+            query = f"""SELECT
+                    a.COLUMN_NAME column_name,
+                    a.DATA_TYPE AS column_type,
+                    b.COMMENTS AS column_comment
+                FROM
+                    ALL_TAB_COLUMNS a
+                LEFT JOIN
+                    ALL_COL_COMMENTS b ON a.OWNER = b.OWNER
+                    AND a.TABLE_NAME = b.TABLE_NAME
+                    AND a.COLUMN_NAME = b.COLUMN_NAME
+                WHERE
+                    a.OWNER = '{self.username}'
+                    AND (a.TABLE_NAME = '{table_name}' OR a.TABLE_NAME = '{table_name.upper()}')
+                ORDER BY
+                    a.COLUMN_ID"""
             result = conn.execute(text(query)).fetchall()
             for row in result:
                 schema["columns"].append({
