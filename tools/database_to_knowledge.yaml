@@ -97,6 +97,17 @@ parameters:
       zh_Hans: 密码
     llm_description: Password
     form: form
+  - name: properties
+    type: string
+    required: false
+    label:
+      en_US: Database properties
+      zh_Hans: 数据库属性
+    human_description:
+      en_US: 'Database properties, for example: options=-csearch_path%3Dschema_name'
+      zh_Hans: 数据库属性，例如：options=-csearch_path%3Dschema_name
+    llm_description: Database properties
+    form: form
   - name: table_names
     type: string
     label:

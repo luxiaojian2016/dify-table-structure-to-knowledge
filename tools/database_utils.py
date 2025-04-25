@@ -1,11 +1,10 @@
 import re
 
-from urllib import parse
+from urllib.parse import parse_qsl
 from sqlalchemy import create_engine, inspect, URL, text
 from typing import Dict
 
-
-def _build_db_url(db_type: str, host: str, port: int, username: str, password: str, database: str) -> URL:
+def _build_db_url(db_type: str, host: str, port: int, username: str, password: str, database: str, properties: str) -> URL:
     """构建SQLAlchemy连接URL"""
     db_type = db_type.lower()
 
@@ -25,12 +24,13 @@ def _build_db_url(db_type: str, host: str, port: int, username: str, password: s
         password=password,
         host=host,
         port=port,
-        database=database
+        database=database,
+        query=dict(parse_qsl(properties)) if properties else None
     )
 
 class DBSchemaExtractor:
-    def __init__(self, db_type: str, host: str, port: int, username: str, password: str, database: str):
-        db_url = _build_db_url(db_type, host, port, username, password, database)
+    def __init__(self, db_type: str, host: str, port: int, username: str, password: str, database: str, properties: str):
+        db_url = _build_db_url(db_type, host, port, username, password, database, properties)
         self.engine = create_engine(db_url)
         self.inspector = inspect(self.engine)
         self.db_type = db_type
