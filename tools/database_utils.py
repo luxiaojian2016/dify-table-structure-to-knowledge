@@ -31,7 +31,7 @@ def _build_db_url(db_type: str, host: str, port: int, username: str, password: s
 class DBSchemaExtractor:
     def __init__(self, db_type: str, host: str, port: int, username: str, password: str, database: str, properties: str):
         db_url = _build_db_url(db_type, host, port, username, password, database, properties)
-        self.engine = create_engine(db_url)
+        self.engine = create_engine(db_url,tds_version='7.0')
         self.inspector = inspect(self.engine)
         self.db_type = db_type
         self.username = username
